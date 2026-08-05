@@ -11,6 +11,7 @@ import { isAuthenticationError } from '../../../utils/auth-error-handler';
 import { withRetry, RETRY_CONFIG } from '../../../utils/retry';
 import { transformApiError, handleFetchError } from '../../../utils/error-handler';
 import { sanitizeString } from '../../../utils/validation';
+import { resolveAssignees, type UserLookupClient } from '../../../utils/assignees';
 import { AUTH_ERROR_MESSAGES } from '../constants';
 import { validateDateString, validateId, convertRepeatConfiguration } from '../validation';
 import { createTaskResponse } from './TaskResponseFormatter';
@@ -25,7 +26,9 @@ export interface CreateTaskArgs {
   endDate?: string;
   priority?: number;
   labels?: number[];
-  assignees?: number[];
+  /** Numeric user IDs, or usernames to resolve. Usernames are needed because the
+   *  users tool is JWT-only, leaving API-token sessions no way to discover IDs. */
+  assignees?: Array<number | string>;
   repeatAfter?: number;
   repeatMode?: 'day' | 'week' | 'month' | 'year';
   // Session ID for AORP response tracking
@@ -72,12 +75,18 @@ export async function createTask(args: CreateTaskArgs): Promise<{ content: Array
       validateDateString(args.endDate, 'endDate');
     }
 
-    // Validate assignee IDs upfront
-    if (args.assignees && args.assignees.length > 0) {
-      args.assignees.forEach((id) => validateId(id, 'assignee ID'));
-    }
-
     const client = await getClientFromContext();
+
+    // Resolve any usernames to IDs before validating: validateId rejects strings,
+    // and a username is only meaningful once turned into an ID.
+    const assigneeIds = args.assignees
+      ? await resolveAssignees(client as unknown as UserLookupClient, args.assignees)
+      : undefined;
+
+    // Validate assignee IDs upfront
+    if (assigneeIds && assigneeIds.length > 0) {
+      assigneeIds.forEach((id) => validateId(id, 'assignee ID'));
+    }
 
     // Build the initial task object with sanitized values
     const newTask: Task = {
@@ -120,8 +129,8 @@ export async function createTask(args: CreateTaskArgs): Promise<{ content: Array
       }
 
       // Add assignees if provided
-      if (args.assignees && args.assignees.length > 0 && createdTask.id) {
-        await addAssigneesToTask(client, createdTask.id, args.assignees);
+      if (assigneeIds && assigneeIds.length > 0 && createdTask.id) {
+        await addAssigneesToTask(client, createdTask.id, assigneeIds);
         creationState.assigneesAdded = true;
       }
 
