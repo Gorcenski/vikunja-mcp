@@ -110,7 +110,7 @@ export function registerTaskCrudTool(
       dueDate: z.string().optional(),
       priority: z.number().min(0).max(5).optional(),
       labels: z.array(z.number()).optional(),
-      assignees: z.array(z.number()).optional(),
+      assignees: z.array(z.union([z.number(), z.string()])).optional(),
       // Recurring task fields
       repeatAfter: z.number().min(0).optional(),
       repeatMode: z.enum(['day', 'week', 'month', 'year']).optional(),

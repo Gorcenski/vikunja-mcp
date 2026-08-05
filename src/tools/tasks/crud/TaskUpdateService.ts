@@ -4,6 +4,7 @@
  */
 
 import { MCPError, ErrorCode } from '../../../types';
+import { resolveAssignees, type UserLookupClient } from '../../../utils/assignees';
 import { getClientFromContext } from '../../../client';
 import type { Task, VikunjaClient } from 'node-vikunja';
 import { validateDateString, validateId, convertRepeatConfiguration } from '../validation';
@@ -22,7 +23,9 @@ export interface UpdateTaskArgs {
   priority?: number;
   done?: boolean;
   labels?: number[];
-  assignees?: number[];
+  /** Numeric user IDs, or usernames to resolve. Usernames are needed because the
+   *  users tool is JWT-only, leaving API-token sessions no way to discover IDs. */
+  assignees?: Array<number | string>;
   repeatAfter?: number;
   repeatMode?: 'day' | 'week' | 'month' | 'year';
   // Session ID for AORP response tracking
@@ -67,9 +70,14 @@ export async function updateTask(args: UpdateTaskArgs): Promise<{ content: Array
       await updateTaskLabels(client, args.id, args.labels);
     }
 
-    // Update assignees if provided
+    // Update assignees if provided. Usernames are resolved to IDs first; the diff
+    // in updateTaskAssignees compares against numeric IDs from the API.
     if (args.assignees !== undefined) {
-      await updateTaskAssignees(client, args.id, args.assignees);
+      const assigneeIds = await resolveAssignees(
+        client as unknown as UserLookupClient,
+        args.assignees,
+      );
+      await updateTaskAssignees(client, args.id, assigneeIds);
     }
 
     // Fetch the complete updated task

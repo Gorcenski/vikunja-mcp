@@ -15,6 +15,11 @@ A Model Context Protocol (MCP) server that enables AI assistants to interact wit
 - **Batch import** tasks from CSV or JSON files
 - **Input validation** for dates, IDs, and hex colors
 - **Efficient diff-based updates** for assignees
+- **Assign by username or user ID** — usernames are resolved via Vikunja's user
+  search, which works under API-token auth where the `users` tool is unavailable.
+  Matching is exact and case-insensitive; an ambiguous or unknown username errors
+  rather than guessing, since assigning the wrong person silently is worse than
+  failing. Numeric IDs are passed through without a lookup.
 - **TypeScript with strict mode** for type safety
 - **Comprehensive error handling** with typed errors and centralized utilities
 - **Production-ready retry logic** with opossum circuit breaker for resilience
@@ -264,7 +269,15 @@ vikunja_tasks.create({
   dueDate: "2024-12-31T23:59:59Z",
   priority: 3,
   labels: [1, 2],      // Label IDs
-  assignees: [1, 3]    // User IDs
+  assignees: [1, 3]    // User IDs, or usernames — see below
+})
+
+// Assign by username instead of ID. Useful with API-token auth, where the `users`
+// tool is not registered and there is no way to look an ID up from the session.
+vikunja_tasks.create({
+  projectId: 1,
+  title: "Review the pagination fix",
+  assignees: ["emily", 3]   // usernames and IDs can be mixed
 })
 
 // Create a recurring task (repeats every week)
@@ -306,6 +319,13 @@ vikunja_tasks.update({
 vikunja_tasks.update({
   id: 123,
   assignees: [1, 2, 4]  // Only adds/removes differences
+})
+
+// Assignees may be usernames on update too; they are resolved to IDs before the
+// diff is calculated, so the add/remove behaviour is unchanged.
+vikunja_tasks.update({
+  id: 123,
+  assignees: ["emily"]
 })
 
 // Delete a task
