@@ -94,10 +94,15 @@ export async function fetchAllPages<T, P extends object>(
 /**
  * Whether a listing request should exhaust pages.
  *
- * Only when the caller supplied neither `page` nor `perPage` — in that case the
- * values in params are the library's own memory-protection defaults rather than a
- * user intent, so fetching everything is what the caller actually asked for.
+ * Only an explicit `page` disables it: asking for page 3 means "give me page 3",
+ * and returning more would break the caller's own pagination.
+ *
+ * `perPage` alone does NOT disable it. It is a batch size — how many rows to pull
+ * per request — not a cap on the total. Treating it as a cap silently dropped
+ * tasks: `perPage: 5` returned 5 of 44 and reported 5 as the total, and varying
+ * perPage between calls made the "total" appear to change at random. A list tool
+ * must not lose rows because of how many it was asked to fetch at a time.
  */
 export function shouldAutoPaginate(args: { page?: number; perPage?: number }): boolean {
-  return args.page === undefined && args.perPage === undefined;
+  return args.page === undefined;
 }

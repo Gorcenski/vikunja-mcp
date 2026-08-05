@@ -133,14 +133,16 @@ describe('shouldAutoPaginate', () => {
   });
 
   it('does not auto-page when the caller asked for a specific page', () => {
+    // Returning more than the requested page would break caller-driven pagination.
     expect(shouldAutoPaginate({ page: 2 })).toBe(false);
-  });
-
-  it('does not auto-page when the caller set a page size', () => {
-    expect(shouldAutoPaginate({ perPage: 25 })).toBe(false);
-  });
-
-  it('does not auto-page when both are set', () => {
     expect(shouldAutoPaginate({ page: 1, perPage: 25 })).toBe(false);
+  });
+
+  it('still auto-pages when only perPage is given', () => {
+    // perPage is a batch size, not a cap on the total. Treating it as a cap meant
+    // `perPage: 5` returned 5 of 44 tasks and reported 5 as the total, and varying
+    // perPage between calls made the total appear to change at random.
+    expect(shouldAutoPaginate({ perPage: 25 })).toBe(true);
+    expect(shouldAutoPaginate({ perPage: 5 })).toBe(true);
   });
 });
