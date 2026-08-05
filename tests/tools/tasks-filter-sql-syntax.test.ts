@@ -136,8 +136,15 @@ describe('Tasks Tool - SQL-like Filter Syntax', () => {
       // Simple filter with parentheses
       const filter = '(priority >= 4)';
 
-      // Mock successful response - the API should handle the filter correctly
-      mockClient.tasks.getAllTasks.mockResolvedValue([mockHighPriorityTask]);
+      // Mock successful response - the API should handle the filter correctly.
+      // Page-aware on purpose: a real Vikunja returns an empty page past the end,
+      // and task listing now exhausts pages rather than trusting per_page (the
+      // server clamps it to max_items_per_page). A flat mockResolvedValue would
+      // make every page look full and the fetch would never terminate naturally.
+      mockClient.tasks.getAllTasks.mockImplementation(
+        async (params?: { page?: number }) =>
+          (params?.page ?? 1) === 1 ? [mockHighPriorityTask] : [],
+      );
 
       const result = await callTool('list', { filter });
 

@@ -10,6 +10,7 @@ import type { TaskFilterStorage, FilteringParams, FilteringMetadata, FilteringAr
 import { FilteringContext } from '../../../utils/filtering';
 import { validateTaskCountLimit, createTaskLimitExceededMessage, logMemoryUsage } from '../../../utils/memory';
 import { MCPError, ErrorCode } from '../../../types';
+import { shouldAutoPaginate } from '../../../utils/filtering/pagination';
 import { logger } from '../../../utils/logger';
 
 /**
@@ -36,7 +37,11 @@ export const FilterExecutor = {
         args: args as FilteringArgs,
         filterExpression,
         filterString,
-        params
+        params,
+        // Only this layer can tell a user-supplied page/perPage from the
+        // memory-protection defaults applied in prepareQueryParameters, so the
+        // decision to exhaust pages is made here and passed down.
+        autoPaginate: shouldAutoPaginate(args)
       };
 
       const filteringResult = await filteringContext.execute(filteringParams);
