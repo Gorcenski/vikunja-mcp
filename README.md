@@ -946,8 +946,20 @@ The Vikunja filter syntax supports SQL-like queries with the following:
 - **Fallback**: Falls back to client-side filtering if server-side filtering fails or is unavailable
 - **Transparent**: Same filter syntax works regardless of which method is used
 - **Optimized**: Includes memory protection with pagination limits to prevent unbounded loading
+- **Complete**: Pages are exhausted rather than assumed — see below
 - **Metadata**: Response includes filtering method used (`serverSideFiltering` or `clientSideFiltering`)
 - **Performance**: Server-side filtering significantly reduces network traffic and processing time
+
+**Pagination and completeness:** Vikunja clamps `per_page` to its own
+`max_items_per_page` setting (50 by default, visible at `/api/v1/info`). A listing
+that requests more than that receives a short page, so task listing pages through
+the full result set instead of trusting a single response. Without this, any project
+with more matching tasks than the server's page cap silently returned a truncated
+list while reporting the truncated number as the total.
+
+When you pass `page` or `perPage` explicitly, that request is honoured verbatim and
+no additional pages are fetched — auto-paging applies only when neither is given,
+i.e. when you asked for "all matching tasks".
 
 ## Response Format
 

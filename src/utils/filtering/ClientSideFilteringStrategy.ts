@@ -12,6 +12,7 @@ import { getClientFromContext } from '../../client';
 import { validateId } from '../../tools/tasks/validation';
 import { applyFilter } from '../../tools/tasks/filtering';
 import { logger } from '../logger';
+import { fetchAllPages } from './pagination';
 
 export class ClientSideFilteringStrategy implements TaskFilteringStrategy {
   async execute(params: FilteringParams): Promise<FilteringResult> {
@@ -24,20 +25,33 @@ export class ClientSideFilteringStrategy implements TaskFilteringStrategy {
       endpoint: args.projectId && !args.allProjects ? 'getProjectTasks' : 'getAllTasks'
     });
     
-    // Load tasks without server-side filtering
-    let tasks;
-    if (args.projectId !== undefined && !args.allProjects) {
-      // Validate project ID
-      validateId(args.projectId, 'projectId');
-      // Get tasks for specific project without filter
-      tasks = await client.tasks.getProjectTasks(args.projectId, apiParams);
-    } else {
-      // Get all tasks across all projects without filter  
-      tasks = await client.tasks.getAllTasks(apiParams);
-    }
-    
+    // Load tasks without server-side filtering. Pages must be exhausted here too —
+    // client-side filtering over a single clamped page is how the original
+    // under-reporting bug manifested: the filter was applied to 50 rows and the
+    // remainder of the project was never fetched at all.
+    const autoPaginate = params.autoPaginate ?? false;
+    // Return type is inferred from the client so it stays in step with
+    // node-vikunja's Task, which differs from this repo's own Task interface.
+    const fetchPage = (
+      p: typeof apiParams,
+    ): ReturnType<typeof client.tasks.getAllTasks> => {
+      if (args.projectId !== undefined && !args.allProjects) {
+        // Validate project ID
+        validateId(args.projectId, 'projectId');
+        // Get tasks for specific project without filter
+        return client.tasks.getProjectTasks(args.projectId, p);
+      }
+      // Get all tasks across all projects without filter
+      return client.tasks.getAllTasks(p);
+    };
+
+    const page = await fetchAllPages(fetchPage, apiParams, autoPaginate);
+    const tasks = page.items;
+
     logger.info('Tasks loaded for client-side filtering', {
       totalTasksLoaded: tasks?.length || 0,
+      pagesFetched: page.pagesFetched,
+      truncated: page.truncated,
       filter: filterString
     });
     

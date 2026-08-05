@@ -36,6 +36,18 @@ export interface FilteringParams {
   filterExpression: FilterExpression | null;
   filterString: string | undefined;
   params: GetTasksParams;
+  /**
+   * Whether the strategy should exhaust pages rather than issue one request.
+   *
+   * Decided by the caller that builds `params`, because only it can distinguish a
+   * user-supplied page/perPage from the memory-protection defaults it applied
+   * itself — by the time a strategy sees `params`, the two are indistinguishable.
+   * Defaults to false so a direct construction issues exactly one request.
+   *
+   * Kept in step with the structurally identical interface in
+   * src/utils/filtering/types.ts.
+   */
+  autoPaginate?: boolean;
 }
 
 /**
