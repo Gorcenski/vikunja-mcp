@@ -4,6 +4,7 @@
  */
 
 import type { VikunjaClient } from 'node-vikunja';
+import { applyVikunjaV2Compat } from '../utils/vikunja-v2-compat';
 import type { AuthManager } from '../auth/AuthManager';
 import type { VikunjaClientConstructor } from '../types/node-vikunja-extended';
 
@@ -38,6 +39,13 @@ export class VikunjaClientFactory {
       }
       
       this.clientInstance = new this.VikunjaClientClass(session.apiUrl, session.apiToken);
+      // node-vikunja 0.4.0 (latest published) predates two Vikunja v2 API changes:
+      // GET /tasks/all was removed, and the assignee bulk endpoint accepts requests
+      // and assigns nobody. Patch the affected methods on each new instance.
+      applyVikunjaV2Compat(this.clientInstance, {
+        apiUrl: session.apiUrl,
+        apiToken: session.apiToken,
+      });
       this.currentApiUrl = session.apiUrl;
       this.currentApiToken = session.apiToken;
     }

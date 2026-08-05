@@ -59,6 +59,21 @@ All improvements maintain **100% backward compatibility** with existing implemen
 - Vikunja instance with API access
 - API token (starting with `tk_`) or JWT token for authentication
 
+### Vikunja v2 compatibility
+
+`node-vikunja` 0.4.0 (the latest published version) predates two Vikunja v2 API
+changes, so this server patches the affected client methods at construction — see
+`src/utils/vikunja-v2-compat.ts`. Both were found against a live v2.4.0 instance:
+
+- **`GET /tasks/all` was removed.** The current route is `GET /tasks`. Without the
+  shim every cross-project task list returns `400 Invalid model provided`.
+- **`POST /tasks/{id}/assignees/bulk` no longer assigns anyone.** It responds `201`
+  with `{"assignees":null}` and changes nothing, so assignment fails silently and
+  looks like it worked. Assignment is done with one `PUT /tasks/{id}/assignees` per
+  user instead, which does persist.
+
+Remove the shims once a `node-vikunja` release targets the v2 API.
+
 ## Installation
 
 ### Option 1: Install from NPM (Recommended)
