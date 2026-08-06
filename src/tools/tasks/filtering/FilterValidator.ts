@@ -197,8 +197,12 @@ export const FilterValidator = {
       errors.push('Per page count must be a positive integer');
     }
 
-    if (args.projectId !== undefined && (args.projectId < 1 || !Number.isInteger(args.projectId))) {
-      errors.push('Project ID must be a positive integer');
+    // Non-zero, not positive: Vikunja addresses saved filters and built-in views as
+    // projects with negative ids (-2 is "My Open Tasks" on a default install) and
+    // GET /projects/-2/tasks returns normally. This check ran before the request and
+    // rejected those reads locally.
+    if (args.projectId !== undefined && (args.projectId === 0 || !Number.isInteger(args.projectId))) {
+      errors.push('Project ID must be a non-zero integer');
     }
 
     // Validate boolean parameters

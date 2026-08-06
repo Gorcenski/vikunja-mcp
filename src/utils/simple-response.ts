@@ -125,20 +125,46 @@ export function formatSuccessMessage(
 
     if (collection && Array.isArray(collection)) {
       content += `**Results:** ${collection.length} item(s)\n\n`;
-      if (collection.length > 0 && collection.length <= 10) {
-        content += formatDataItems(collection as DataItem[]);
-      }
+      content += formatRenderedItems(collection as DataItem[]);
     } else if (Array.isArray(data)) {
       content += `**Results:** ${data.length} item(s)\n\n`;
-      if (data.length > 0 && data.length <= 10) {
-        content += formatDataItems(data as DataItem[]);
-      }
+      content += formatRenderedItems(data as DataItem[]);
     } else if (data && typeof data === 'object') {
       content += formatObjectData(data as Record<string, unknown>);
     }
   }
 
   return content;
+}
+
+/**
+ * Render a collection, bounded so a huge result set cannot produce an unusable wall
+ * of text.
+ *
+ * Previously items were rendered only when the collection had 10 or fewer entries;
+ * anything larger printed "Results: 29 item(s)" and no items at all. That made the
+ * response body silently empty for any page size above 10 — the caller asked for 15
+ * or 50 rows and got none, with nothing to indicate why.
+ *
+ * The response now always shows items, and says explicitly when it has stopped
+ * listing rather than leaving the reader to infer it. Paginate with `perPage` to see
+ * the rest.
+ */
+const MAX_RENDERED_ITEMS = 50;
+
+function formatRenderedItems(items: DataItem[]): string {
+  if (items.length === 0) {
+    return '';
+  }
+  if (items.length <= MAX_RENDERED_ITEMS) {
+    return formatDataItems(items);
+  }
+  const shown = items.slice(0, MAX_RENDERED_ITEMS);
+  return (
+    formatDataItems(shown) +
+    `\n_Showing the first ${MAX_RENDERED_ITEMS} of ${items.length}. ` +
+    'Use `perPage` and `page` to see the rest._\n\n'
+  );
 }
 
 /**

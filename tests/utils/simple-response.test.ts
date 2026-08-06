@@ -346,7 +346,11 @@ describe('simple-response - Task Formatting', () => {
       expect(result).toContain('0 item(s)');
     });
 
-    it('should handle more than 10 items (should not display)', () => {
+    it('should display more than 10 items', () => {
+      // This previously asserted that >10 items were NOT displayed, which documented
+      // a defect rather than a requirement: any page size above 10 produced a body
+      // with the count and no items, and nothing said why. Items are now always
+      // rendered, bounded at MAX_RENDERED_ITEMS with an explicit notice.
       const tasks: Task[] = Array.from({ length: 15 }, (_, i) => ({
         id: i + 1,
         project_id: 1,
@@ -364,9 +368,11 @@ describe('simple-response - Task Formatting', () => {
 
       expect(result).toContain('**Results:**');
       expect(result).toContain('15 item(s)');
-      // Items should not be displayed when > 10
-      expect(result).not.toContain('### 1.');
-      expect(result).not.toContain('Task 1');
+      expect(result).toContain('### 1.');
+      expect(result).toContain('Task 1');
+      expect(result).toContain('Task 15');
+      // Well under the render bound, so no truncation notice.
+      expect(result).not.toContain('Showing the first');
     });
 
     it('should handle exactly 10 items (should display)', () => {
