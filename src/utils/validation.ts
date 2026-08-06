@@ -667,6 +667,27 @@ export function validateId(id: number, fieldName: string): void {
 }
 
 /**
+ * Validate a project id for *reading*, allowing Vikunja's pseudo-projects.
+ *
+ * Vikunja exposes saved filters and built-in views as projects with negative ids —
+ * -2 is "My Open Tasks" on a default install, and GET /projects/-2/tasks returns
+ * normally. validateId rejects anything <= 0, so listing a pseudo-project failed
+ * before the request was ever made.
+ *
+ * Deliberately separate from validateId rather than loosening it: a negative id is
+ * still invalid for a task, label or assignee, and for creating a task in a project.
+ * Only reads that Vikunja itself accepts are widened.
+ */
+export function validateReadableProjectId(id: number, fieldName: string): void {
+  if (typeof id !== 'number' || !Number.isInteger(id) || id === 0) {
+    throw new MCPError(
+      ErrorCode.VALIDATION_ERROR,
+      `${fieldName} must be a non-zero integer (negative ids address Vikunja pseudo-projects)`,
+    );
+  }
+}
+
+/**
  * Validate and convert ID from various formats
  */
 export function validateAndConvertId(id: unknown, fieldName: string): number {

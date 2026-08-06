@@ -15,6 +15,14 @@ A Model Context Protocol (MCP) server that enables AI assistants to interact wit
 - **Batch import** tasks from CSV or JSON files
 - **Input validation** for dates, IDs, and hex colors
 - **Efficient diff-based updates** for assignees
+- **Accurate totals with real pagination** — task listing fetches every match, so the
+  reported count is the true total; `perPage` then limits how many are returned and
+  the response carries `page`/`totalPages`/`hasMore`. Previously `perPage` was passed
+  straight to the API and the short page was reported as the total, so tasks silently
+  went missing.
+- **Pseudo-project reads** — negative project ids (Vikunja saved filters and built-in
+  views, e.g. `-2` "My Open Tasks") can be listed; they were rejected before reaching
+  the API.
 - **TypeScript with strict mode** for type safety
 - **Comprehensive error handling** with typed errors and centralized utilities
 - **Production-ready retry logic** with opossum circuit breaker for resilience

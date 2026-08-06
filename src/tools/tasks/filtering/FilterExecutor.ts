@@ -11,6 +11,7 @@ import { FilteringContext } from '../../../utils/filtering';
 import { validateTaskCountLimit, createTaskLimitExceededMessage, logMemoryUsage } from '../../../utils/memory';
 import { MCPError, ErrorCode } from '../../../types';
 import { shouldAutoPaginate } from '../../../utils/filtering/pagination';
+import { paginateResults } from './paginate-results';
 import { logger } from '../../../utils/logger';
 
 /**
@@ -90,6 +91,10 @@ export const FilterExecutor = {
       // Apply post-processing filters
       const processedTasks = FilterExecutor.applyPostProcessingFilters(tasks, args);
 
+      // Everything matching has been fetched, so the count here is the true total.
+      // Slice to the requested page for the response while reporting that total.
+      const paged = paginateResults(processedTasks, args);
+
       // Determine filtering method message and metadata from strategy result
       const filteringMetadata = FilterExecutor.createFilteringMetadata(
         filterString,
@@ -101,8 +106,9 @@ export const FilterExecutor = {
       // Build return object, only including defined properties to satisfy exactOptionalPropertyTypes
       const result: TaskFilterExecutionResult = {
         success: true,
-        tasks: processedTasks,
+        tasks: paged.tasks,
         metadata: filteringMetadata,
+        pagination: paged.pagination,
       };
 
       if (memoryInfo !== undefined) {

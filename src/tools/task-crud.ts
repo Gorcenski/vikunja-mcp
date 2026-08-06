@@ -57,12 +57,22 @@ async function listTasks(
     // Type the filtering metadata properly
     const filteringMetadata = metadata;
 
+    // Report the size of the whole result set, not of the returned page. Saying
+    // "Found 5 tasks" when 29 matched is how tasks appeared to go missing.
+    const pageInfo = filteringResult.pagination;
+    const totalMatching = pageInfo?.total ?? tasks.length;
+    const pageSuffix = pageInfo && pageInfo.totalPages > 1
+      ? ` (showing ${tasks.length}, page ${pageInfo.page} of ${pageInfo.totalPages})`
+      : '';
+
     const response = createSuccessResponse(
       'list-tasks',
-      `Found ${tasks.length} tasks${filteringMessage}`,
+      `Found ${totalMatching} tasks${filteringMessage}${pageSuffix}`,
       { tasks: tasks as Task[] }, // Convert from node-vikunja Task to our Task interface
       {
-        count: tasks.length,
+        count: totalMatching,
+        returned: tasks.length,
+        ...(pageInfo ? { pagination: pageInfo } : {}),
         filteringMethod: filteringMetadata.serverSideFilteringUsed ? 'server-side' :
                            filteringMetadata.serverSideFilteringAttempted ? 'client-side-fallback' : 'client-side',
         ...metadata,

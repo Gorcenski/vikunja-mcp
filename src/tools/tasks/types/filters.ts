@@ -142,6 +142,17 @@ export interface TaskFilterExecutionResult {
   tasks: Task[];
   /** Filtering metadata */
   metadata: FilteringMetadata;
+  /**
+   * Page description for the returned slice. `total` is the size of the whole
+   * result set, not of `tasks`, so callers can tell whether more remain.
+   */
+  pagination?: {
+    total: number;
+    page: number;
+    perPage: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
   /** Memory usage information */
   memoryInfo?: {
     actualCount: number;

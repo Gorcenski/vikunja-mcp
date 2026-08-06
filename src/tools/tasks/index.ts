@@ -59,14 +59,22 @@ async function listTasks(
       }
     }
 
-    const taskCount = filteringResult.tasks?.length || 0;
+    const returnedCount = filteringResult.tasks?.length || 0;
+    // Report the whole result set, not the returned page — see task-crud.ts.
+    const pageInfo = filteringResult.pagination;
+    const taskCount = pageInfo?.total ?? returnedCount;
+    const pageSuffix = pageInfo && pageInfo.totalPages > 1
+      ? ` (showing ${returnedCount}, page ${pageInfo.page} of ${pageInfo.totalPages})`
+      : '';
     const response = createTaskResponse(
       'list-tasks',
-      `Found ${taskCount} tasks${filteringMessage}`,
+      `Found ${taskCount} tasks${filteringMessage}${pageSuffix}`,
       { tasks: filteringResult.tasks || [] },
       {
         timestamp: new Date().toISOString(),
         count: taskCount,
+        returned: returnedCount,
+        ...(pageInfo ? { pagination: pageInfo } : {}),
         ...(filteringResult.metadata || {}),
       },
       undefined, // verbosity (ignored - using standard AORP)

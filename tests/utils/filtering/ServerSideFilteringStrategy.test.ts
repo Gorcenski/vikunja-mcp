@@ -25,13 +25,19 @@ jest.mock('../../../src/utils/logger', () => ({
   },
 }));
 
-// Mock validation
+// Mock validation. Only the project-id check is stubbed; the rest of the module is
+// real because other code in the import graph depends on it.
 jest.mock('../../../src/tools/tasks/validation', () => ({
   validateId: jest.fn(),
+}));
+jest.mock('../../../src/utils/validation', () => ({
+  ...jest.requireActual('../../../src/utils/validation'),
+  validateReadableProjectId: jest.fn(),
 }));
 
 import { getClientFromContext } from '../../../src/client';
 import { validateId } from '../../../src/tools/tasks/validation';
+import { validateReadableProjectId } from '../../../src/utils/validation';
 
 describe('ServerSideFilteringStrategy', () => {
   let strategy: ServerSideFilteringStrategy;
@@ -77,6 +83,9 @@ describe('ServerSideFilteringStrategy', () => {
     
     (getClientFromContext as jest.MockedFunction<typeof getClientFromContext>).mockResolvedValue(mockClient);
     (validateId as jest.MockedFunction<typeof validateId>).mockImplementation(() => {});
+    (
+      validateReadableProjectId as jest.MockedFunction<typeof validateReadableProjectId>
+    ).mockImplementation(() => {});
   });
 
   describe('execute', () => {
@@ -152,7 +161,7 @@ describe('ServerSideFilteringStrategy', () => {
 
       const result = await strategy.execute(params);
 
-      expect(validateId).toHaveBeenCalledWith(projectId, 'projectId');
+      expect(validateReadableProjectId).toHaveBeenCalledWith(projectId, 'projectId');
       expect(mockClient.tasks.getProjectTasks).toHaveBeenCalledWith(projectId, {
         page: 1,
         per_page: 10,
@@ -177,15 +186,19 @@ describe('ServerSideFilteringStrategy', () => {
     });
 
     it('should handle validation errors for invalid project IDs', async () => {
+      // 0, not -1: negative ids address Vikunja pseudo-projects (-2 is "My Open
+      // Tasks") and are valid to read, so -1 is no longer an example of invalid.
       const params: FilteringParams = {
-        args: { projectId: -1 },
+        args: { projectId: 0 },
         filterExpression: null,
         filterString: 'priority >= 3',
         params: { page: 1, per_page: 10 }
       };
 
       const validationError = new MCPError(ErrorCode.VALIDATION_ERROR, 'Invalid project ID');
-      (validateId as jest.MockedFunction<typeof validateId>).mockImplementation(() => {
+      (
+        validateReadableProjectId as jest.MockedFunction<typeof validateReadableProjectId>
+      ).mockImplementation(() => {
         throw validationError;
       });
 
@@ -318,7 +331,7 @@ describe('ServerSideFilteringStrategy', () => {
 
       const result = await strategy.execute(params);
 
-      expect(validateId).toHaveBeenCalledWith(0, 'projectId');
+      expect(validateReadableProjectId).toHaveBeenCalledWith(0, 'projectId');
       expect(mockClient.tasks.getProjectTasks).toHaveBeenCalledWith(0, {
         page: 1,
         per_page: 10,

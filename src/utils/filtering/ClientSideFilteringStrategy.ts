@@ -9,7 +9,7 @@
 import type { TaskFilteringStrategy } from './TaskFilteringStrategy';
 import type { FilteringParams, FilteringResult } from './types';
 import { getClientFromContext } from '../../client';
-import { validateId } from '../../tools/tasks/validation';
+import { validateReadableProjectId } from '../validation';
 import { applyFilter } from '../../tools/tasks/filtering';
 import { logger } from '../logger';
 import { fetchAllPages } from './pagination';
@@ -37,7 +37,7 @@ export class ClientSideFilteringStrategy implements TaskFilteringStrategy {
     ): ReturnType<typeof client.tasks.getAllTasks> => {
       if (args.projectId !== undefined && !args.allProjects) {
         // Validate project ID
-        validateId(args.projectId, 'projectId');
+        validateReadableProjectId(args.projectId, 'projectId');
         // Get tasks for specific project without filter
         return client.tasks.getProjectTasks(args.projectId, p);
       }
